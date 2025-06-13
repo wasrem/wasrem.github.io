@@ -55,27 +55,25 @@ export const appList = [
   },
 ]
 
-
-
 export const myLinkList = [
-  { href: "https://github.com/ezfuzzy", alt: "GitHub", src: "https://img.icons8.com/ios-filled/50/000000/github.png" },
+  { href: "", alt: "", src: "" },
   {
-    href: "https://www.linkedin.com/in/ezfuzzy/",
-    alt: "LinkedIn",
-    src: "https://img.icons8.com/ios-filled/50/000000/linkedin.png",
+    href: "",
+    alt: "",
+    src: "",
   },
   {
-    href: "https://velog.io/@fuzzy",
-    alt: "Velog",
-    src: "https://cdn.icon-icons.com/icons2/3915/PNG/512/velog_logo_icon_249278.png",
+    href: "",
+    alt: "",
+    src: "",
   },
 ]
 
 export const myContactList = [
-  { href: "mailto:ezfuzzy052@gmail.com", text: "Email: ezfuzzy052@gmail.com" },
+  { href: "", text: "" },
   {
-    href: "https://www.linkedin.com/in/%EB%AF%BC%EC%A4%80-%EA%B9%80-92a27a32a/",
-    text: "LinkedIn: ezfuzzy's LinkedIn",
+    href: "",
+    text: "",
   },
-  { href: "https://github.com/ezfuzzy", text: "GitHub: https://github.com/ezfuzzy" },
+  { href: "", text: "" },
 ]
