@@ -302,9 +302,15 @@ const SearchByIndstrytyCd = () => {
     if (!showUrgentOnly) {
       const urgentData = data.filter((item) => {
         if (!item.bidClseDt) return false
-        const diffDays = item.bidClseDt.substring(8, 10) - new Date().getDate()
 
-        return diffDays <= 3 && diffDays >= 0
+        const now = new Date() // 현재 시간
+        const deadline = new Date(item.bidClseDt) // 마감일
+
+        const threeDaysLaterEnd = new Date(now)
+        threeDaysLaterEnd.setDate(now.getDate() + 3)
+        threeDaysLaterEnd.setHours(23, 59, 0, 0)
+
+        return deadline >= now && deadline <= threeDaysLaterEnd
       })
       setCurrentData(urgentData)
     } else {
