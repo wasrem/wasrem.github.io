@@ -10,6 +10,30 @@ const PRESET_CODES = ["1162", "1164", "1172", "1173", "1192", "1260"]
 const baseUrlForBidList = "https://apis.data.go.kr/1230000/ad/BidPublicInfoService/getBidPblancListInfoServcPPSSrch"
 const baseUrlForPrtcptPsblRgnNmOfBid = "https://apis.data.go.kr/1230000/ad/BidPublicInfoService/getBidPblancListInfoPrtcptPsblRgn"
 
+const regionOptions = [
+  { code: "00", name: "전국(공고서참조)만 보기" },
+  { code: "11", name: "서울특별시" },
+  { code: "26", name: "부산광역시" },
+  { code: "27", name: "대구광역시" },
+  { code: "28", name: "인천광역시" },
+  { code: "29", name: "광주광역시" },
+  { code: "30", name: "대전광역시" },
+  { code: "31", name: "울산광역시" },
+  { code: "36", name: "세종특별자치시" },
+  { code: "41", name: "경기도" },
+  { code: "42", name: "강원도" },
+  { code: "43", name: "충청북도" },
+  { code: "44", name: "충청남도" },
+  { code: "45", name: "전라북도" },
+  { code: "46", name: "전라남도" },
+  { code: "47", name: "경상북도" },
+  { code: "48", name: "경상남도" },
+  { code: "50", name: "제주도" },
+  { code: "51", name: "강원특별자치도" },
+  { code: "52", name: "전북특별자치도" },
+  { code: "99", name: "기타" },
+]
+
 const formatDate = (date, end = false) => {
   if (!date) return ""
   const y = date.getFullYear()
@@ -156,11 +180,22 @@ const SearchByIndstrytyCd = () => {
               prtcptPsblRgnNm = apiItems[0].prtcptPsblRgnNm || "전국(공고서참조)" // 값을 받아오지 못했을 경우 기본값은 "전국"
             }
 
-            // 참가가능지역 필터링: 서울, 서울특별시, 전국이 아닌 경우 목록에서 제외
-            if (!["서울", "서울특별시", "전국(공고서참조)"].includes(prtcptPsblRgnNm)) {
-              return null
-            }
+            if (regionCode !== "") {
+              const defaultAllowedNames = ["전국(공고서참조)"]
 
+              // regionOptions에서 해당 regionCode에 해당하는 name 찾기
+              const matchedRegion = regionOptions.find((region) => region.code === regionCode)
+              const regionName = matchedRegion ? matchedRegion.name : null
+
+              const validNames = regionName ? [regionName, ...defaultAllowedNames] : [...defaultAllowedNames]
+
+              // prtcptPsblRgnNm이 유효한 이름을 포함하고 있는지 확인
+              const isValid = validNames.some((name) => prtcptPsblRgnNm.includes(name))
+
+              if (!isValid) {
+                return null
+              }
+            }
             // 기존 데이터에 참가가능지역 추가
             return {
               ...item,
@@ -197,7 +232,6 @@ const SearchByIndstrytyCd = () => {
 
       /* 
         TODO: 
-            
             - 필터링 후 리스트업 
             - 지원 자격 체크  - ? 
             - UI/UX 고민
@@ -225,8 +259,8 @@ const SearchByIndstrytyCd = () => {
   const handleCodeClick = (code) => {
     setIndstrytyCd(code)
     setActiveCode(code)
-    setCurrentPage(1)
-    fetchData(code, 1)
+    // setCurrentPage(1)
+    // fetchData(code, 1)
   }
 
   const handlePageChange = (newPage) => {
@@ -291,7 +325,7 @@ const SearchByIndstrytyCd = () => {
     navigator.clipboard
       .writeText(formattedText)
       .then(() => {
-        alert("텍스트가 클립보드에 복사되었습니다.")
+        alert("텍스트가 클립보드에 복사되었습니다. Crtl + V 로 붙여넣으세요.")
       })
       .catch((err) => {
         alert("클립보드에 복사 실패: " + err)
@@ -341,6 +375,12 @@ const SearchByIndstrytyCd = () => {
                     type="text"
                     value={bidNtceNm}
                     onChange={(e) => setBidNtceNm(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        setCurrentPage(1)
+                        fetchData(null, 1)
+                      }
+                    }}
                     placeholder="예: 청소, 보안, 급식 등"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -351,6 +391,12 @@ const SearchByIndstrytyCd = () => {
                     type="text"
                     value={excludeKeyword}
                     onChange={(e) => setExcludeKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        setCurrentPage(1)
+                        fetchData(null, 1)
+                      }
+                    }}
                     placeholder="예: 청소년, 학원 등"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -404,10 +450,10 @@ const SearchByIndstrytyCd = () => {
               </div>
             </div>
 
-            {/* 업종코드 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">🏢 업종코드 (선택사항)</label>
-              <div className="flex gap-2">
+            {/* 업종코드와 지역코드 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">🏢 업종코드 (선택사항)</label>
                 <input
                   type="text"
                   value={indstrytyCd}
@@ -415,16 +461,32 @@ const SearchByIndstrytyCd = () => {
                     setIndstrytyCd(e.target.value)
                     setActiveCode(null)
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setCurrentPage(1)
+                      fetchData(null, 1)
+                    }
+                  }}
                   placeholder="예: 1172"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                <input
-                  disabled
-                  type="text"
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">🌍 지역 선택 (선택사항)</label>
+                <select
                   value={regionCode}
-                  placeholder="지역코드 (준비중)"
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-400 cursor-not-allowed"
-                />
+                  onChange={(e) => {
+                    setRegionCode(e.target.value)
+                    setActiveCode(null)
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                  <option value="">전체 지역</option>
+                  {regionOptions.map((region) => (
+                    <option key={region.code} value={region.code}>
+                      {region.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -437,7 +499,9 @@ const SearchByIndstrytyCd = () => {
                     key={code}
                     onClick={() => handleCodeClick(code)}
                     className={`px-3 py-1 text-sm rounded-full border transition-all ${
-                      activeCode === code ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white text-gray-600 border-gray-300 hover:border-blue-300 hover:bg-blue-50"
+                      activeCode === code || indstrytyCd === code
+                        ? "bg-blue-500 text-white border-blue-500 shadow-sm"
+                        : "bg-white text-gray-600 border-gray-300 hover:border-blue-300 hover:bg-blue-50"
                     }`}>
                     {code}
                   </button>
