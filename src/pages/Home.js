@@ -14,7 +14,7 @@ function Home() {
                 to={item.to}
                 className="block border-2 border-green-900 rounded-lg p-4 hover:shadow-2xl hover:scale-105 transform transition duration-300 ease-in-out h-[300px] flex flex-col justify-between">
                 <span className="block flex-grow mb-2 h-[200px] overflow-hidden rounded-xl">
-                  <img src={item.img} alt={item.alt} className="w-full h-full object-cover rounded" />
+                  <img src={item.img} alt={item.alt} className="w-full h-full object-contain rounded" />
                 </span>
                 <span className="block text-center text-lg font-semibold mt-auto">{item.title}</span>
               </Link>

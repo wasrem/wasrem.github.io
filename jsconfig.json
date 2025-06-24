@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "paths": {
+      "constants/*": ["src/constants/*"]
+    }
+  },
+  "include": ["src"]
+}

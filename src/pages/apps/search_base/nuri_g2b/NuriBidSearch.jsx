@@ -1,38 +1,12 @@
-// SearchByIndstrytyCd.jsx
 import React, { useState } from "react"
 import axios from "axios"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
-import BidList from "./BidList"
+import BidList from "../G2bBidList"
+import { PRESET_CODES, regionOptions } from "constants/mapping"
 
 const api_key = process.env.REACT_APP_BidPublicInfoService_API_KEY_DEC
-const PRESET_CODES = ["1162", "1164", "1172", "1173", "1192", "1260"]
-const baseUrlForBidList = "https://apis.data.go.kr/1230000/ad/BidPublicInfoService/getBidPblancListInfoServcPPSSrch"
-const baseUrlForPrtcptPsblRgnNmOfBid = "https://apis.data.go.kr/1230000/ad/BidPublicInfoService/getBidPblancListInfoPrtcptPsblRgn"
-
-const regionOptions = [
-  { code: "00", name: "전국(공고서참조)만 보기" },
-  { code: "11", name: "서울특별시" },
-  { code: "26", name: "부산광역시" },
-  { code: "27", name: "대구광역시" },
-  { code: "28", name: "인천광역시" },
-  { code: "29", name: "광주광역시" },
-  { code: "30", name: "대전광역시" },
-  { code: "31", name: "울산광역시" },
-  { code: "36", name: "세종특별자치시" },
-  { code: "41", name: "경기도" },
-  { code: "42", name: "강원도" },
-  { code: "43", name: "충청북도" },
-  { code: "44", name: "충청남도" },
-  { code: "45", name: "전라북도" },
-  { code: "46", name: "전라남도" },
-  { code: "47", name: "경상북도" },
-  { code: "48", name: "경상남도" },
-  { code: "50", name: "제주도" },
-  { code: "51", name: "강원특별자치도" },
-  { code: "52", name: "전북특별자치도" },
-  { code: "99", name: "기타" },
-]
+const baseUrlForBidList_nuri_g2b = "https://apis.data.go.kr/1230000/ao/PrvtBidNtceService/getPrvtBidPblancListInfoCnstwkPPSSrch"
 
 const formatDate = (date, end = false) => {
   if (!date) return ""
@@ -42,7 +16,8 @@ const formatDate = (date, end = false) => {
   return `${y}${m}${d}${end ? "2359" : "0000"}`
 }
 
-const SearchByIndstrytyCd = () => {
+// NuriBidSearch
+const NuriBidSearch = () => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -95,7 +70,7 @@ const SearchByIndstrytyCd = () => {
     }
 
     try {
-      const response = await axios.get(baseUrlForBidList, { params: queryParams })
+      const response = await axios.get(baseUrlForBidList_nuri_g2b, { params: queryParams })
       const count = response.data.response.body.totalCount
 
       // 총 검색결과 체크
@@ -123,7 +98,6 @@ const SearchByIndstrytyCd = () => {
       count의 최대값은 999임
       > 일단 1000 이상은 검색 안되게 해놨고
       검색조건 조정 안내 해뒀음
-  
     */
 
     if (!count) return
@@ -147,71 +121,20 @@ const SearchByIndstrytyCd = () => {
     }
 
     try {
-      const responseForBidList = await axios.get(baseUrlForBidList, { params: queryParamsForBidList })
-
+      const responseForBidList = await axios.get(baseUrlForBidList_nuri_g2b, { params: queryParamsForBidList })
       const rawItems = responseForBidList.data.response.body.items || []
 
       // 지역 체크 api 보내기 전에 이름이랑 공고종류에 대해서 필터링
       const filtered = rawItems.filter((item) => item.ntceKindNm !== "취소공고" && item.ntceKindNm !== "연기공고" && (!excludeKeyword || !item.bidNtceNm?.includes(excludeKeyword)))
 
-      const itemsWithRegion = await Promise.all(
-        filtered.map(async (item, idx) => {
-          // bidNtceNo와 bidNtceOrd를 쿼리 파라미터로 설정 (inqryDiv: 2면 필수값임)
-          const queryParamsForRegion = {
-            inqryDiv: "2",
-            pageNo: "1",
-            numOfRows: "1",
-            ServiceKey: api_key,
-            bidNtceNo: item.bidNtceNo,
-            bidNtceOrd: item.bidNtceOrd,
-            type: "json",
-          }
+      let itemsWithRegion
 
-          try {
-            const responseForRegion = await axios.get(baseUrlForPrtcptPsblRgnNmOfBid, { params: queryParamsForRegion })
-            const resultCode = responseForRegion.data.response.header.resultCode
-            const apiItems = responseForRegion.data.response.body.items
-
-            // 결과가 정상이고 totalCount가 0일 경우 "전국"으로 설정
-            let prtcptPsblRgnNm = "전국(공고서참조)" // 기본값은 전국으로 설정
-
-            // 만약 totalCount가 1 이상이면 참가가능지역을 받아온 값으로 설정 > 일단 서울이랑 전국으로 필터링
-            if (resultCode === "00" && apiItems !== undefined) {
-              prtcptPsblRgnNm = apiItems[0].prtcptPsblRgnNm || "전국(공고서참조)" // 값을 받아오지 못했을 경우 기본값은 "전국"
-            }
-
-            if (regionCode !== "") {
-              const defaultAllowedNames = ["전국(공고서참조)"]
-
-              // regionOptions에서 해당 regionCode에 해당하는 name 찾기
-              const matchedRegion = regionOptions.find((region) => region.code === regionCode)
-              const regionName = matchedRegion ? matchedRegion.name : null
-
-              const validNames = regionName ? [regionName, ...defaultAllowedNames] : [...defaultAllowedNames]
-
-              // prtcptPsblRgnNm이 유효한 이름을 포함하고 있는지 확인
-              const isValid = validNames.some((name) => prtcptPsblRgnNm.includes(name))
-
-              if (!isValid) {
-                return null
-              }
-            }
-            // 기존 데이터에 참가가능지역 추가
-            return {
-              ...item,
-              listOrder: (page - 1) * rowsPerPage + idx + 1,
-              prtcptPsblRgnNm,
-            }
-          } catch (error) {
-            console.error("API 요청 실패:", error)
-            return {
-              ...item,
-              listOrder: (page - 1) * rowsPerPage + idx + 1,
-              prtcptPsblRgnNm: "API 요청 실패",
-            }
-          }
-        })
-      )
+      // 지역코드가 있는 경우 API 요청 없이 처리
+      itemsWithRegion = filtered.map((item, idx) => ({
+        ...item,
+        listOrder: (page - 1) * rowsPerPage + idx + 1,
+        prtcptPsblRgnNm: getRegionNameByCode(regionCode) || "공고서참조",
+      }))
 
       const validItems = itemsWithRegion.filter((item) => item !== null)
 
@@ -224,30 +147,10 @@ const SearchByIndstrytyCd = () => {
       const endIdx = startIdx + rowsPerPage
 
       setData(items)
-
       setCurrentData(items.slice(startIdx, endIdx))
       setTotalCount(items.length)
+
       console.log(items)
-      console.log(currentData)
-
-      /* 
-        TODO: 
-            - 필터링 후 리스트업 
-            - 지원 자격 체크  - ? 
-            - UI/UX 고민
-
-        DONE: 
-            - 공고종류(상태) 검색조건 추가 : 일단 취소공고랑 연기공고 자동 필터링
-            - 제외 키워드 검색조건 추가 
-            - 지역 검색조건 최적화 : 일단 데이터 개선 요청 넣어놨음 
-              > 입찰 공고 목록 정보에 대한 참가 가능 지역 조회(getBidPblancListInfoPrtcptPsblRgn)에 
-                조회구분 2로 bidNtceNo랑 bidNtceOrd를 보내면 참가 가능 지역을 가져올 수 있음
-                resultCode == 00 이면서 totalCount가 0이면 참가가능지역제한이 없다는 거임 or 공고서 참조
-                현재는 api를 n개의 데이터에 대해 n번 보냄 ...
-            - 배포 방법 고민
-              > 일단 gh-pages로 배포
-            - 필터링이랑 페이징, 지역 제한 체크, totalCount 등은 임시로 해결 
-      */
     } catch (err) {
       setError(err.message)
     } finally {
@@ -256,11 +159,20 @@ const SearchByIndstrytyCd = () => {
     }
   }
 
+  // 지역코드로 지역명 찾기
+  const getRegionNameByCode = (code) => {
+    const matchedRegion = regionOptions.find((region) => region.code === code)
+    return matchedRegion ? matchedRegion.name : null
+  }
+
   const handleCodeClick = (code) => {
-    setIndstrytyCd(code)
-    setActiveCode(code)
-    // setCurrentPage(1)
-    // fetchData(code, 1)
+    if (indstrytyCd === code) {
+      setIndstrytyCd("")
+      setActiveCode(null)
+    } else {
+      setIndstrytyCd(code)
+      setActiveCode(code)
+    }
   }
 
   const handlePageChange = (newPage) => {
@@ -293,11 +205,11 @@ const SearchByIndstrytyCd = () => {
 
   const totalPages = Math.ceil(totalCount / rowsPerPage)
 
-  /* 다운로드 */
+  /* 다운로드, 복사 */
   const formatDataToText = (data) => {
     return data
       .map((item) => {
-        return `${item.bidNtceNm ?? "-"}\t${item.rgstTyNm ?? "-"}\t${item.bidClseDt ?? "-"}\t${item.sucsfbidLwltRate ?? "-"}\t${indstrytyCd ?? "-"}\t${
+        return `${item.ntceNm ?? "-"}\t${item.rgstTyNm ?? "-"}\t${item.bidClseDt ?? "-"}\t${item.sucsfbidLwltRate ?? "-"}\t${indstrytyCd ?? "-"}\t${
           item.prtcptPsblRgnNm ?? "-"
         }\t${((item.sucsfbidLwltRate ?? 0) / 100).toFixed(5)}\t${item.asignBdgtAmt ?? "-"}`
       })
@@ -313,7 +225,7 @@ const SearchByIndstrytyCd = () => {
 
     const a = document.createElement("a")
     a.href = url
-    a.download = "list.txt" // 파일 이름
+    a.download = "BitList.txt"
     a.click()
 
     window.URL.revokeObjectURL(url)
@@ -359,8 +271,9 @@ const SearchByIndstrytyCd = () => {
       <div className="container mx-auto p-4 max-w-6xl">
         {/* 헤더 */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <h1 className="text-xl font-bold text-gray-800 mb-2">입찰공고 검색</h1>
+          <h1 className="text-xl font-bold text-gray-800 mb-2">누리장터 입찰공고(용역) 검색</h1>
           <p className="text-sm text-gray-600">개찰일(마감일) 기준으로 검색합니다</p>
+          <p className="text-sm text-gray-600">* 누리장터는 공고번호를 누리장터에 검색하셔서 공고서를 참조하셔야 합니다.</p>
         </div>
 
         {/* 검색 폼 */}
@@ -472,7 +385,7 @@ const SearchByIndstrytyCd = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">🌍 지역 선택 (선택사항)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">🌍 지역 선택 (선택사항 - 전국이 아닌 지역을 선택하면 전국은 안나옵니다.)</label>
                 <select
                   value={regionCode}
                   onChange={(e) => {
@@ -595,4 +508,4 @@ const SearchByIndstrytyCd = () => {
   )
 }
 
-export default SearchByIndstrytyCd
+export default NuriBidSearch

@@ -38,7 +38,7 @@ const BidList = ({ items, currentPage, totalPages, onPageChange }) => {
         {items.map((item) => (
           <div key={`${item.bidNtceNo}-${item.listOrder}`} className="border rounded-lg p-4 shadow hover:bg-gray-50 transition">
             <h2 className="text-blue-600 font-bold text-lg cursor-pointer hover:underline" onClick={() => setSelected(item)}>
-              #{item.listOrder}. {item.bidNtceNm}
+              #{item.listOrder}. {item.bidNtceNm || item.ntceNm}
             </h2>
             <p>
               <span className="font-semibold text-gray-700">기관:</span> {item.ntceInsttNm}
@@ -64,9 +64,11 @@ const BidList = ({ items, currentPage, totalPages, onPageChange }) => {
             <p>
               <span className="text-red-700">추정가격:</span> {item.presmptPrce ? parseInt(item.presmptPrce).toLocaleString() : "-"}원
             </p>
-            <a href={item.bidNtceDtlUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline mt-2 inline-block">
-              나라장터 상세보기
-            </a>
+            {item.bidNtceDtlUrl && (
+              <a href={item.bidNtceDtlUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline mt-2 inline-block">
+                나라장터 상세보기
+              </a>
+            )}
           </div>
         ))}
       </div>
@@ -110,7 +112,7 @@ const BidList = ({ items, currentPage, totalPages, onPageChange }) => {
             <strong>서비스분류:</strong> {selected.pubPrcrmntClsfcNm}
           </p>
           <p>
-            <strong>담당자:</strong> {selected.ntceInsttOfclNm} ({selected.ntceInsttOfclTelNo})
+            <strong>담당자:</strong> {selected.ntceInsttOfclNm || selected.ofclNm} ({selected.ntceInsttOfclTelNo || selected.ofclTelNo})
           </p>
           <p>
             <strong>낙찰하한율:</strong> {selected.sucsfbidLwltRate || "-"}%
@@ -126,7 +128,10 @@ const BidList = ({ items, currentPage, totalPages, onPageChange }) => {
           </p>
           {[...Array(10).keys()].map((i) => {
             const file = selected[`ntceSpecDocUrl${i + 1}`]
-            const name = selected[`ntceSpecFileNm${i + 1}`]
+            const name = selected[`ntceSpecFileNm${i + 1}`] || selected[`ntceSpecDocNm${i + 1}`]
+
+            console.log(selected)
+
             return file ? (
               <a key={i} href={file} target="_blank" rel="noopener noreferrer" className="block text-blue-500 underline">
                 📄 {name}
